@@ -1,10 +1,4 @@
 
-@media screen and (max-width:3000){
-    body {
-        font-size: 34px;
-    }
-}
-
 
 body {
     background: #333;
@@ -29,7 +23,7 @@ body {
     width: 160px;
     padding: 8px;
 }
-.results{
+.results {
     font-size: 16px;
     height: 300px;
 }
@@ -71,4 +65,23 @@ input {
 .list-item:hover {
     margin-left: 6px;
     color: #3bd1b5;
+}
+
+
+
+@media screen and (max-width:1100px){
+    .search {
+        width: 300px;
+        padding: 20px;
+    }
+    input {
+        font-size: 30px;
+        width: 220px;
+    }
+    .list-item {
+        font-size: 28px;
+    }
+    .info{
+        font-size: 26px;
+    }
 }
