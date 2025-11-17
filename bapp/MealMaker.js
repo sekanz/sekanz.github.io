@@ -5,13 +5,8 @@ class MealMaker extends Element {
         super(parentDiv, list, label);
         this.left = this.createDiv(this.div, ["pane", "search"], "", undefined);
         this.right = this.createDiv(this.div, ["pane", "search", "info"], "", undefined);
-        this.search = document.createElement("input");
-        this.search.setAttribute("type", "button");
-        this.search.setAttribute("value", "Create");
-        this.search.onclick = (e)=>{
-            this.createMeals();
-        };
-        this.left.appendChild(this.search);
+        this.createBtn = this.createDiv(this.div, ["btn"], "Create", (e)=>{this.createMeals();});
+        this.left.appendChild(this.createBtn);
         this.results = this.createDiv(this.left, ["results", "list"], "", undefined);
     }
     createMeals(){

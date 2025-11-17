@@ -69,7 +69,7 @@ class Entree extends Thing {
         this.id = id;
         this.name = name;
         this.type = type;
-        this.size = size;
+        this.size = parseInt(size);
         this.unit = unit;
         this.ingredients = [];
         this.nutrients = undefined;
