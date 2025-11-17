@@ -1,0 +1,67 @@
+
+body {
+    background: #333;
+    font-size: 24px;
+    font-family: arial;
+    margin: 20px;
+    color: white;
+}
+.widget {
+    margin: 10px;
+    display: inline-block;
+    vertical-align: top;
+    background: #273b39;
+    padding: 8px;
+    border: 1px solid rgb(56, 95, 93);
+}
+.pane {
+    display: inline-block;
+    vertical-align: top;
+}
+.search{            
+    width: 160px;
+    padding: 8px;
+}
+.results{
+    font-size: 16px;
+    height: 300px;
+}
+.info{
+    font-size: 16px;
+}
+input {
+    font-size: 16px;
+    width: 120px;
+}
+.btn {
+    width: 100px;
+    border: 2px solid white;
+    background-color: #7c7c7c;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+}
+.btn:hover {
+    background-color: #565656;
+}
+.list {
+    margin: 4px;
+    padding: 4px;
+    overflow-y: auto;
+}
+.nutrients {
+    max-height: 200px;
+}
+.list-item {
+    display: block;
+    padding: 2px;
+    margin: 2px;
+    font-size: 18px;
+    cursor: pointer;
+    color: #c3c3c3;
+}
+.list-item:hover {
+    margin-left: 6px;
+    color: #3bd1b5;
+}

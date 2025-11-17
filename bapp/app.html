@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1">
+<html xmins="http://www.w3.org/1999/xhtml">
+<head>
+    <title> Nutrition Program</title>
+    <link rel="stylesheet" href="main.css">
+    <script src="Utility.js"></script>
+    <script src="Objects.js"></script>
+    <script src="data.js"></script>
+    <script src="Search.js"></script>
+    <script src="MealMaker.js"></script>
+    <script>
+        
+        function init(){
+            const parentDiv = document.getElementById("app");
+            const entreeSearch = new Search(parentDiv, entrees, "Entrees");
+            const ingredientSearch = new Search(parentDiv, foods, "Foods");
+            const mealMaker = new MealMaker(parentDiv, meals, "Meals");
+        }
+     
+        window.addEventListener("load", ()=>{init();})
+    </script>
+</head>
+
+<body>
+    <div id="app"></div>
+</body>
+</html>

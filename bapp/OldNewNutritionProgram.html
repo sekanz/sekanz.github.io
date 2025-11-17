@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1">
+<html xmins="http://www.w3.org/1999/xhtml">
+<head>
+    <title> Nutrition Program</title>
+    <script src = "foodList.js"> </script>
+    
+    <script>
+    //setup for random number generation
+
+        function getRandomInt(min, max){
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+    //proompt for number of meals to generate
+        var m = prompt ("How many meals would you like?");
+                
+     //generate random numbers
+        var raN1=getRandomInt(0,a);
+        var raN2=getRandomInt(0,a);
+        var raN3=getRandomInt(0,a);
+        var raN4=getRandomInt(0,a);
+        var raN5=getRandomInt(0,a);
+
+    //choose random element from array based on raN
+    //get Entre item and check type        
+        var entrE
+        for (var be=0; be<foodArray.length; be++){
+            if (foodArray[be]==raN1){
+                if (foodArray[be].type = 1){
+                    entrE=foodArray[be].description
+                }
+            }
+    //if type 1
+    // get grain, veg, fruit, and desert
+            var graiN
+            for (var bg=0; bg<foodArray.length; bg++)
+            if (foodArray[bg]==raN2){
+                if (foodArray[bg].category = Grain){
+                        (graiN = foodArray[bg].description);
+                    }    
+            }
+            var veG
+            for (var bv=0; bv<foodArray.length; bv++)
+            if (foodArray[bv]==raN3){
+                if (foodArray[bv].category = Veg) {
+                        (veG = foodArray[bv].description);
+                    }    
+                }
+            var fruiT
+            for (var bf=0; bf<foodArray.length; bf++)
+            if (foodArray[bf]==raN4){
+                if (foodArray[bf].category = Fruit) {
+                        (fruiT = foodArray[bf].description);
+                    }    
+                }
+            var deserT
+            for (var bd=0; bd<foodArray.length; bd++)
+            if (foodArray[bv]==raN5){
+                if (foodArray[bd].category = Desert){
+                        (deserT = foodArray[bd].description);
+                    }    
+                }
+        }
+        alert (entrE, graiN, veG, fruiT, deserT);
+                
+                        </script>
+</head>
+
+<body> 
+    <script>
+ 
+
+    </script>
+    
+    
+
+</body>
+</html>
