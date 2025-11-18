@@ -17,9 +17,11 @@ class DivMaker {
 }
 
 class App {
-    constructor(parentDiv){
+    constructor(){
+        this.appInfo = {width: 0, height: 0};
         this.activeApp = undefined;
         this.activeTabDiv = undefined;
+        window.addEventListener("resize", ()=>{this.sizeWindow();})
     }
     configure(divMaker, parentDiv){
         this.divMaker = divMaker;
@@ -30,14 +32,15 @@ class App {
         this.initApps();
     }
     sizeWindow(){
-        let width = window.innerWidth;
-        let height = window.innerHeight;
-        this.body.style.width = `${Math.floor(width *.92)}px`;        
-        this.body.style.height = `${Math.floor(height *.8)}px`;
-        this.tabs.style.width = `${Math.floor(width *.92)}px`;
+        this.appInfo.width = window.innerWidth;
+        this.appInfo.height = window.innerHeight;
+        this.body.style.width = `${Math.floor(this.appInfo.width *.92)}px`;        
+        this.body.style.height = `${Math.floor(this.appInfo.height *.8)}px`;
+        this.tabs.style.width = `${Math.floor(this.appInfo.width *.92)}px`;
     }
     initApps(){
-        this.createTab(new Editor());
+        this.createTab(new Editor(foods, "Foods"));
+        this.createTab(new Editor(entrees, "Piles"));
         this.createTab(new Applet());
         //applet.configure(this.divMaker, this.body);
 
@@ -50,7 +53,7 @@ class App {
     createTab(app){
         let tab = this.divMaker.createDiv(this.tabs, ["tab"], app.title, (e)=>{
             this.clickTab(e.target, app)});
-        app.configure(this.divMaker, this.body);
+        app.configure(this.divMaker, this.body, this.appInfo);
         if(this.activeApp == undefined){
             this.activeApp = app;
             this.activeTabDiv = tab;
