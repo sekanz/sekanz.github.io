@@ -1,10 +1,30 @@
 
 
-class Element {
+class ObjectEditor {
     constructor(parentDiv, list, label){
         this.list = list;
+        this.maxResults = 20;
+
+        this.createStructure(parentDiv, label);
+        this.doSearch("");
+    }
+    createStructure(parentDiv, label){
         this.div = this.createDiv(parentDiv, ["widget"], "", undefined);
         this.div.innerHTML = `<div>${label}</div>`;
+        this.toolbar = this.createDiv(this.div, ["toolbar"], "", undefined);
+        this.left = this.createDiv(this.div, ["pane", "search"], "", undefined);
+        this.right = this.createDiv(this.div, ["pane", "search", "info"], "", undefined);
+        this.search = document.createElement("input");
+        this.search.setAttribute("type", "text");
+        this.search.setAttribute("placeholder", "search for...");
+        this.search.setAttribute("class", "tool");
+        this.search.onkeyup = (e)=>{
+            this.onChange(e.target.value);
+        };
+        this.toolbar.appendChild(this.search);
+        this.results = this.createDiv(this.left, ["results", "list"], "", undefined);
+
+        this.debounceTimer = undefined;
     }
     createDiv(parentDiv, classNames, content, clickFunc){
         let div = document.createElement("div");
@@ -16,7 +36,35 @@ class Element {
         parentDiv.appendChild(div);
         return div;
     }
-    displayInfo(obj){ }
+    onChange(value){
+        if(this.debounceTimer != undefined){
+            clearTimeout(this.debounceTimer);
+        }
+        this.debounceTimer = setTimeout(()=>{
+            this.doSearch(value);
+        }, 600);
+    }
+    doSearch(value){
+        let hits = 0;
+        this.results.innerHTML = "";
+        for(let i = 0; i < this.list.length; i++){
+            const obj = this.list[i];
+            if(obj.name.toLocaleLowerCase().indexOf(value.toLocaleLowerCase()) >= 0){
+                let div = this.createDiv(this.results, ["list-item"], obj.name, ()=>{this.displayInfo(obj)});
+                hits++;
+            }
+            if(hits + 1 > this.maxResults){
+                let div = this.createDiv(this.results, ["list-item"], "...", undefined);
+                break;
+            }
+        }
+        if(hits == 0){
+            this.createDiv(this.results, ["list-item"], "No results", undefined);
+        }
+    }
+    displayInfo(obj){
+        this.right.innerHTML = obj.formatInfo();
+    }
 }
 
 class Thing {
@@ -71,6 +119,7 @@ class Entree extends Thing {
         this.type = type;
         this.size = parseInt(size);
         this.unit = unit;
+        this.selectable = false;
         this.ingredients = [];
         this.nutrients = undefined;
         this.gatherIndredients(ingredients);

@@ -3,25 +3,25 @@
 <head>
     <title> Nutrition Program</title>
     <link rel="stylesheet" href="main.css">
-    <script src="Utility.js"></script>
-    <script src="Objects.js"></script>
-    <script src="data.js"></script>
-    <script src="Search.js"></script>
-    <script src="MealMaker.js"></script>
+    <script src="js/Utility.js"></script>
+    <script src="js/Objects.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/Search.js"></script>
+    <script src="js/MealMaker.js"></script>
+    <script src="js/Applet.js"></script>
+    <script src="js/App.js"></script>
     <script>
         
         function init(){
-            const parentDiv = document.getElementById("app");
-            const entreeSearch = new Search(parentDiv, entrees, "Entrees");
-            const ingredientSearch = new Search(parentDiv, foods, "Foods");
-            const mealMaker = new MealMaker(parentDiv, meals, "Meals");
+            const parentDiv = document.children[0].children[1];
+            const divMaker = new DivMaker();
+            const app = new App();
+            app.configure(divMaker, parentDiv);
         }
      
         window.addEventListener("load", ()=>{init();})
     </script>
 </head>
 
-<body>
-    <div id="app" class="app"></div>
-</body>
+<body></body>
 </html>
