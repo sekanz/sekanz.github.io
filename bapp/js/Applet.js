@@ -38,10 +38,11 @@ class Editor extends Applet {
         this.toolbar = this.divMaker.createDiv(this.div, ["toolbar"], "", undefined);
         this.left = this.divMaker.createDiv(this.div, ["pane", "search"], "", undefined);
         this.right = this.divMaker.createDiv(this.div, ["pane", "info"], "", undefined);
-        this.right.style.maxHeight = `${this.appInfo.height - 600}px`;
+        this.right.style.maxHeight = `${this.appInfo.height * 0.6}px`;
         this.setUpSearch();        
         this.results = this.divMaker.createDiv(this.left, ["results", "list"], "", undefined);
-        this.results.style.maxHeight = `${this.appInfo.height - 200}px`;
+        
+        this.results.style.maxHeight = `${this.appInfo.height * 0.6}px`;
     }
     setUpSearch(){
         this.search = document.createElement("input");

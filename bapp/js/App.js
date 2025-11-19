@@ -34,9 +34,16 @@ class App {
     sizeWindow(){
         this.appInfo.width = window.innerWidth;
         this.appInfo.height = window.innerHeight;
+        this.appInfo.left = this.body.offsetLeft;
+        this.appInfo.top = this.body.offsetTop;
+        this.appInfo.right = this.appInfo.left + this.appInfo.width;
+        this.appInfo.bottom = this.appInfo.top + this.appInfo.height;
         this.body.style.width = `${Math.floor(this.appInfo.width *.92)}px`;        
         this.body.style.height = `${Math.floor(this.appInfo.height *.8)}px`;
         this.tabs.style.width = `${Math.floor(this.appInfo.width *.92)}px`;
+
+        this.body.style.fontSize = `${Math.floor(this.appInfo.width * 0.03)}px`;
+        this.tabs.style.fontSize = `${Math.floor(this.appInfo.width * 0.03)}px`;
     }
     initApps(){
         this.createTab(new Editor(foods, "Foods"));
