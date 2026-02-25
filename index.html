@@ -3,44 +3,10 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>WQ Developer Technical Interview</title>
+        <title>WQ Multiple Redactor</title>
     </head>
 
-    <style type = "text/css">
-        body {
-            padding: 2rem;
-            background-color: #ccc;
-            font-size: 1.2rem;
-        }
-
-        .generate-btn {
-            background-color: yellow;
-            color: orange;
-            font-size: 1.2rem;
-        }
-
-        .results {
-            margin: 2rem;
-        }
-
-        .multipleOfThree {
-            color: red;
-        }
-
-        .multipleOfFive {
-            color: blue;
-        }
-
-        .multipleOfThreeAndFive {
-            color:green;
-        }
-
-        .notAMultiple {
-            color:black;
-            text-decoration: underline;
-        }
-
-    </style>
+    <link rel="stylesheet" href="styles.css">
 
     <script src="tests.js"></script>
     <script src="utilities.js"></script>
@@ -53,7 +19,11 @@
         const MULTIPLE_OF_BOTH_STYLE = "multipleOfThreeAndFive";
         const NO_MULTIPLE_STYLE = "notAMultiple";
         
-        let data;
+        let data = {
+            listOfNumbers: [],
+            runningTotal: 0,
+            isProcessed: false
+        };
 
         function init(){
             data = getNumberData(1,100);
@@ -77,15 +47,17 @@
             data.listOfNumbers.forEach(element => {
                 addDiv(parentDiv, element.value, element.style);
             });
-            addDiv(parentDiv, `\nRunning Total = ${data.runningTotal}`, undefined);
+            if(data.isProcessed){
+                addDiv(parentDiv, `\nRunning Total = ${data.runningTotal}`, undefined);
+            }
         }
     
         function redactMultiplesBtnPressed(){
-            data = processNumberData(data);
+            data = processNumbersData(data);
             displayNumberData(data);
         }
 
-        function processNumberData(data){
+        function processNumbersData(data){
             for(let i = 0; i < data.listOfNumbers.length; i++){
                 let number = data.listOfNumbers[i].value;
                 if(number % 7 == 0){
@@ -95,6 +67,7 @@
                 data.listOfNumbers[i] = evaluateNumberAsMultiple(number);
             }
 
+            data.isProcessed = true;
             return data;
         }
 
@@ -123,9 +96,9 @@
             }
 
             return {
-                    value: number,
-                    style: NO_MULTIPLE_STYLE
-                };
+                value: number,
+                style: NO_MULTIPLE_STYLE
+            };
         }
         	
 	    window.addEventListener('DOMContentLoaded', (event) => {init();});
