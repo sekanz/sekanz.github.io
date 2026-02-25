@@ -1,7 +1,156 @@
-<html>
-<head>
-<title>site</title>
-<body>
-Testing
-</body>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>WQ Developer Technical Interview</title>
+    </head>
+
+    <style type = "text/css">
+        body {
+            padding: 2rem;
+            background-color: #ccc;
+            font-size: 1.2rem;
+        }
+
+        .generate-btn {
+            background-color: yellow;
+            color: orange;
+            font-size: 1.2rem;
+        }
+
+        .results {
+            margin: 2rem;
+        }
+
+        .multipleOfThree {
+            color: red;
+        }
+
+        .multipleOfFive {
+            color: blue;
+        }
+
+        .multipleOfThreeAndFive {
+            color:green;
+        }
+
+        .notAMultiple {
+            color:black;
+            text-decoration: underline;
+        }
+
+    </style>
+
+    <script src="tests.js"></script>
+    <script>
+        const MULTIPLE_OF_THREE_TEXT = "Multiple of three";
+        const MULTIPLE_OF_FIVE_TEXT = "Multiple of five";
+        const MULTIPLE_OF_BOTH_TEXT = "Both";
+        const MULTIPLE_OF_THREE_STYLE = "multipleOfThree";
+        const MULTIPLE_OF_FIVE_STYLE = "multipleOfFive";
+        const MULTIPLE_OF_BOTH_STYLE = "multipleOfThreeAndFive";
+        const NO_MULTIPLE_STYLE = "notAMultiple";
+        
+        let data;
+
+        function init(){
+            data = getNumberData(1,100);
+            displayNumberData(data);
+        }
+
+        function displayNumberData(data){
+            let parentDiv = document.getElementById("results");
+            emptyChildren(parentDiv);
+            data.listOfNumbers.forEach(element => {
+                addDiv(parentDiv, element.value, element.style);
+            });
+            addDiv(parentDiv, `\nRunning Total = ${data.runningTotal}`, undefined);
+        }
+
+        function emptyChildren(parent){
+            while(parent.children.length > 0){
+                parent.removeChild(parent.children[0]);
+            }
+        }
+
+        function getNumberData(start, end){
+            let data = {
+                listOfNumbers: [],
+                runningTotal: 0
+            };
+            for(let i = start; i <= end; i++){
+                data.listOfNumbers.push({value: i, style: undefined});
+            }
+            return data;
+        }
+
+        function processNumberData(data){
+            for(let i = 0; i < data.listOfNumbers.length; i++){
+                let number = data.listOfNumbers[i].value;
+                if(number % 7 == 0){
+                    data.runningTotal += number;
+                }
+
+                data.listOfNumbers[i] = evaluateNumberAsMultiple(number);
+            }
+
+            return data;
+        }
+
+        function evaluateNumberAsMultiple(number){
+            if(number % 3 == 0
+                && number % 5 == 0
+            ){
+                return {
+                    value: MULTIPLE_OF_BOTH_TEXT,
+                    style: MULTIPLE_OF_BOTH_STYLE
+                };
+            }
+
+            if(number % 3 == 0){
+                return {
+                    value: MULTIPLE_OF_THREE_TEXT,
+                    style: MULTIPLE_OF_THREE_STYLE
+                };
+            }
+
+            if(number % 5 == 0){
+                return {
+                    value: MULTIPLE_OF_FIVE_TEXT,
+                    style: MULTIPLE_OF_FIVE_STYLE
+                };
+            }
+
+            return {
+                    value: number,
+                    style: NO_MULTIPLE_STYLE
+                };
+        }
+
+        function addDiv(parent, content, style){
+            let div = document.createElement("div");
+            div.innerText = content;
+            if(style != undefined)
+                div.setAttribute("class", style);
+            parent.appendChild(div);
+        }
+
+        function redactMultiples(){
+            data = processNumberData(data);
+            displayNumberData(data);
+        }
+        	
+	    window.addEventListener('DOMContentLoaded', (event) => {init();});
+    </script>
+	
+    <body>
+        <h1>Sean Johnson</h1>
+        
+        <h2>Water Quality Multiple Redactor</h2>
+
+        <button onclick="redactMultiples();" class="generate-btn">Redact Multiples</button>
+
+        <div id="results" class="results"></div>
+    </body>
 </html>
