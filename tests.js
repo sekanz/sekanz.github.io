@@ -39,7 +39,7 @@
     }
 
     function getNumberData_HasCorrectRunningTotal(){
-        let result = getNumberData(1,27);
+        let result = processNumberData(getNumberData(1,27));
         if(result.runningTotal == 7+14+21){
             console.log("Test passed.");
             return;

@@ -43,6 +43,7 @@
     </style>
 
     <script src="tests.js"></script>
+    <script src="utilities.js"></script>
     <script>
         const MULTIPLE_OF_THREE_TEXT = "Multiple of three";
         const MULTIPLE_OF_FIVE_TEXT = "Multiple of five";
@@ -59,21 +60,6 @@
             displayNumberData(data);
         }
 
-        function displayNumberData(data){
-            let parentDiv = document.getElementById("results");
-            emptyChildren(parentDiv);
-            data.listOfNumbers.forEach(element => {
-                addDiv(parentDiv, element.value, element.style);
-            });
-            addDiv(parentDiv, `\nRunning Total = ${data.runningTotal}`, undefined);
-        }
-
-        function emptyChildren(parent){
-            while(parent.children.length > 0){
-                parent.removeChild(parent.children[0]);
-            }
-        }
-
         function getNumberData(start, end){
             let data = {
                 listOfNumbers: [],
@@ -83,6 +69,20 @@
                 data.listOfNumbers.push({value: i, style: undefined});
             }
             return data;
+        }
+
+        function displayNumberData(data){
+            let parentDiv = document.getElementById("results");
+            emptyChildren(parentDiv);
+            data.listOfNumbers.forEach(element => {
+                addDiv(parentDiv, element.value, element.style);
+            });
+            addDiv(parentDiv, `\nRunning Total = ${data.runningTotal}`, undefined);
+        }
+    
+        function redactMultiplesBtnPressed(){
+            data = processNumberData(data);
+            displayNumberData(data);
         }
 
         function processNumberData(data){
@@ -127,19 +127,6 @@
                     style: NO_MULTIPLE_STYLE
                 };
         }
-
-        function addDiv(parent, content, style){
-            let div = document.createElement("div");
-            div.innerText = content;
-            if(style != undefined)
-                div.setAttribute("class", style);
-            parent.appendChild(div);
-        }
-
-        function redactMultiples(){
-            data = processNumberData(data);
-            displayNumberData(data);
-        }
         	
 	    window.addEventListener('DOMContentLoaded', (event) => {init();});
     </script>
@@ -149,7 +136,7 @@
         
         <h2>Water Quality Multiple Redactor</h2>
 
-        <button onclick="redactMultiples();" class="generate-btn">Redact Multiples</button>
+        <button onclick="redactMultiplesBtnPressed();" class="generate-btn">Redact Multiples</button>
 
         <div id="results" class="results"></div>
     </body>
