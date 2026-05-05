@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Budget Manager</h1>
+            <div class="header-actions">
+                <button id="processBtn" class="btn btn-primary">Process Due Items</button>
+                <button id="exportBtn" class="btn btn-secondary">Export Data</button>
+                <button id="importBtn" class="btn btn-secondary">Import Data</button>
+                <input type="file" id="importFile" accept=".json" style="display: none;">
+            </div>
+        </header>
+
+        <main>
+            <!-- Dashboard Section -->
+            <section class="section dashboard">
+                <h2>Dashboard</h2>
+                <div class="dashboard-cards">
+                    <div class="card">
+                        <h3>Real Accounts Total</h3>
+                        <p class="amount" id="realTotal">$0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3>Virtual Accounts Total</h3>
+                        <p class="amount" id="virtualTotal">$0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3>Retirement Accounts Total</h3>
+                        <p class="amount" id="retirementTotal">$0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3>Net Worth</h3>
+                        <p class="amount" id="netWorth">$0.00</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Real Accounts Section -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>Real Accounts</h2>
+                    <button class="btn btn-small" onclick="openForm('realAccountForm')">+ Add Account</button>
+                </div>
+                <div id="realAccountsList" class="list-container"></div>
+            </section>
+
+            <!-- Virtual Accounts Section -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>Virtual Accounts (Goal Buckets)</h2>
+                    <button class="btn btn-small" onclick="openForm('virtualAccountForm')">+ Add Account</button>
+                </div>
+                <div id="virtualAccountsList" class="list-container"></div>
+            </section>
+
+            <!-- Income Sources Section -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>Income Sources</h2>
+                    <button class="btn btn-small" onclick="openForm('incomeSourceForm')">+ Add Income</button>
+                </div>
+                <div id="incomeSourcesList" class="list-container"></div>
+            </section>
+
+            <!-- Monthly Payments Section -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>Monthly Payments</h2>
+                    <button class="btn btn-small" onclick="openForm('monthlyPaymentForm')">+ Add Payment</button>
+                </div>
+                <div id="monthlyPaymentsList" class="list-container"></div>
+            </section>
+
+            <!-- Retirement Accounts Section -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>Retirement Accounts</h2>
+                    <button class="btn btn-small" onclick="openForm('retirementAccountForm')">+ Add Account</button>
+                </div>
+                <div id="retirementAccountsList" class="list-container"></div>
+            </section>
+
+            <!-- Transactions Section -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>Transactions</h2>
+                    <button class="btn btn-small" onclick="openForm('transactionForm')">+ Add Transaction</button>
+                </div>
+                <div id="transactionsList" class="list-container"></div>
+            </section>
+
+            <!-- Projections Section -->
+            <section class="section">
+                <div class="section-header">
+                    <h2>Projections</h2>
+                </div>
+                <div class="projection-controls">
+                    <label for="projectionWindow">Projection Window:</label>
+                    <select id="projectionWindow">
+                        <option value="3">3 Months</option>
+                        <option value="6" selected>6 Months</option>
+                        <option value="12">12 Months</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                    <input type="number" id="customMonths" placeholder="Months" min="1" max="60" style="display: none;">
+                    <button class="btn btn-primary" onclick="runProjection()">Run Projection</button>
+                </div>
+                <div id="projectionSummary" class="projection-summary"></div>
+                <div id="projectionTable" class="projection-table"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Forms -->
+    <div id="formModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeForm()">&times;</span>
+            <div id="formContainer"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

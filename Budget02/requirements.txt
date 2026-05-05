@@ -1,0 +1,336 @@
+Goal:  
+Build a complete, functional vanilla JavaScript budget app using LocalStorage. The app should track real bank accounts, virtual goal accounts, predictable income streams, paycheck allocation rules, monthly payments, retirement accounts, manual transactions, and include a projection engine. The UI should be minimal; I will handle styling later.
+No external libraries should be used.  
+All accounts must be editable.
+Keep all created files and folders inside the Budget02 folder.
+
+🧱 CORE SYSTEM COMPONENTS
+1. Real Accounts (Actual Bank Accounts)
+Data Model
+Code
+{
+  id: string,
+  name: string,
+  balance: number
+}
+Behavior
+Receive income
+
+Fund virtual accounts
+
+Pay monthly payments
+
+Support manual deposits/withdrawals
+
+Support editing existing accounts (name + starting balance)
+
+2. Virtual Accounts (Goal Buckets)
+Data Model
+Code
+{
+  id: string,
+  name: string,
+  balance: number,
+  allocationPerPaycheck: number
+}
+Behavior
+Receive automatic allocations from each paycheck
+
+Support manual withdrawals
+
+Do NOT interact with monthly payments
+
+Do NOT affect real account balances
+
+Support editing existing virtual accounts (name + allocation amount)
+
+3. Income Sources (Predictable Income)
+Data Model
+Code
+{
+  id: string,
+  name: string,
+  amount: number,
+  frequency: "weekly" | "biweekly" | "monthly",
+  nextPayDate: string,
+  depositToAccountId: string
+}
+Behavior
+On due date:
+
+Add income to a real account
+
+Apply virtual account allocations
+
+Apply retirement contributions
+
+Update next pay date
+
+Support editing existing income sources (all fields)
+
+4. Allocation Rules
+Each virtual account has a fixed amount allocated per paycheck.
+
+Example:
+
+Code
+Car Fund: $100 per paycheck
+Furniture Fund: $50 per paycheck
+Savings Fund: $200 per paycheck
+These are stored inside each virtual account.
+
+5. Monthly Payments (Scheduled Expenses)
+Data Model
+Code
+{
+  id: string,
+  name: string,
+  amount: number,
+  frequency: "monthly",
+  nextDueDate: string,
+  payFromRealAccountId: string
+}
+Behavior
+On or after due date:
+
+Deduct from real account
+
+Create a realWithdrawal transaction
+
+Update nextDueDate to next month
+
+Support editing existing monthly payments
+
+6. Retirement Accounts (External Investment Accounts)
+Data Model
+Code
+{
+  id: string,
+  name: string,
+  balance: number,
+  contributionPerPaycheck: number,
+  employerMatchPercent?: number,
+  growthRateAnnual?: number
+}
+Behavior
+On each paycheck:
+
+Add contribution
+
+Add employer match (if defined)
+
+Optionally apply growth
+
+Does NOT reduce real account balances
+
+Does NOT interact with virtual accounts
+
+Does NOT interact with monthly payments
+
+Support editing existing retirement accounts
+
+7. Transactions
+Data Model
+Code
+{
+  id: string,
+  type: "income" | "realDeposit" | "realWithdrawal" | "virtualWithdrawal",
+  amount: number,
+  realAccountId: string,
+  virtualAccountId?: string,
+  date: string,
+  note: string
+}
+🔮 PROJECTION ENGINE (Future Simulation System)
+Must be implemented with pure vanilla JS. No external libraries.
+
+Projection Data Model
+Projection Event
+Code
+{
+  date: string,
+  type: "income" | "monthlyPayment" | "retirementGrowth",
+  sourceId: string
+}
+Projection Snapshot
+Code
+{
+  date: string,
+  realAccounts: { [id]: number },
+  virtualAccounts: { [id]: number },
+  retirementAccounts: { [id]: number },
+  totals: {
+    real: number,
+    virtual: number,
+    retirement: number,
+    netWorth: number
+  }
+}
+Projection Result
+Code
+{
+  startDate: string,
+  endDate: string,
+  snapshots: ProjectionSnapshot[]
+}
+⭐ Projection Algorithm (Vanilla JS)
+1. Clone all financial data
+Deep copy:
+
+Real accounts
+
+Virtual accounts
+
+Retirement accounts
+
+Income sources
+
+Monthly payments
+
+2. Build a timeline of future events
+For the chosen projection window (3, 6, 12 months, or custom):
+
+Generate all future paycheck dates
+
+Generate all future monthly payment dates
+
+Generate retirement growth events
+
+3. Sort events chronologically
+4. Process each event
+Depending on type:
+
+A. Income Event
+Add income to real account
+
+Apply virtual allocations
+
+Apply retirement contributions
+
+Apply employer match
+
+Update next pay date
+
+B. Monthly Payment Event
+Deduct from real account
+
+Create a simulated withdrawal
+
+Update next due date
+
+C. Retirement Growth Event
+Apply growth rate
+
+5. After each event, record a snapshot
+6. Continue until end date
+📊 PROJECTION UI REQUIREMENTS (NO EXTERNAL LIBRARIES)
+The app should include a minimal UI for projections:
+
+1. Projection Controls
+Dropdown for projection window (3, 6, 12 months, custom)
+
+“Run Projection” button
+
+2. Projection Summary Cards
+Show:
+
+Projected real balance
+
+Projected virtual balance
+
+Projected retirement balance
+
+Projected net worth
+
+3. Projection Table
+A simple HTML table:
+
+Code
+Date | Real Balance | Virtual Balance | Retirement Balance | Net Worth
+4. Optional Simple Charts (v1)
+If charts are included, they must be:
+
+Pure HTML/CSS
+
+Or pure <canvas> with vanilla JS drawing
+
+No external libraries
+
+If too complex, skip charts entirely for v1.
+
+5. Goal Completion Forecast
+For each virtual account:
+
+Show projected date when it reaches its goal amount (if defined)
+
+6. Cash‑Flow Safety Warnings
+Show warnings if:
+
+Real account projected to drop below $0
+
+Real account projected to drop below a safety threshold
+
+Allocations exceed available income
+
+🖥️ UI Requirements (General)
+Minimal, clean layout.
+
+Sections:
+
+Dashboard
+
+Real accounts (with edit support)
+
+Virtual accounts (with edit support)
+
+Income sources (with edit support)
+
+Monthly payments (with edit support)
+
+Retirement accounts (with edit support)
+
+Transactions
+
+Projections
+
+Forms:
+
+Add/edit each type of account or rule
+
+Add transactions
+
+💾 App Behavior
+On load:
+
+Check for due income
+
+Apply allocations
+
+Apply retirement contributions
+
+Check for due monthly payments
+
+All data persists in LocalStorage
+
+UI updates automatically
+
+📂 Output Requirements
+The AI should output:
+
+Full folder structure
+
+Complete code for each file:
+
+index.html
+
+style.css
+
+app.js
+
+Additional JS modules if needed
+
+Comments explaining key logic
+
+Instructions for running locally
+
+Suggestions for future improvements
