@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html>
+
+<style type = "text/css">
+	body {
+		background-color: black;
+		color:white;
+		margin: 2rem;
+		margin-left: auto;
+		margin-right: auto;
+		font-size: 1.2rem;
+		width: 40rem;
+		font-family: Arial, Helvetica, sans-serif;
+	}
+	.cellInput{
+		width: 4rem;
+		display:block;
+		padding: 0px;
+		background-color: black;
+		border: 1px solid #666;
+		color: white;
+		margin:5px;
+	}
+	.cellInput:hover{
+		border: 1px solid #9b9b9b;
+	}
+
+	.column {
+		display:inline-block;
+		vertical-align: top;
+		margin:.2rem;
+	}
+	.description{
+		padding: 1rem;
+		font-size: 1rem;
+	}
+	.cell {
+		display:inline-block;
+	}
+	.row {
+		display:block;
+	}
+	input {
+		height:16px;
+	}
+	.divBtn {
+		display:inline-block;
+		margin:.2rem;
+		cursor: pointer;
+	}
+	.divBtn:hover {
+		color:aquamarine;
+	}
+	.ammortization {
+		height: 20rem;
+		overflow-y: auto;
+		margin: 1rem;
+	}
+	.red {
+		color:red;
+	}
+	.gray {
+		background-color:#2c2c2c;
+	}
+	.green {
+		color:green;
+	}
+	.blue {
+		color:blue;
+	}
+	.big {
+		width: 6rem;
+	}
+	.small {
+		width: 2rem;
+	}
+	.right {
+		text-align: right;
+	}
+	.center {
+		text-align: center;
+	}
+	.extra-pymt {
+		width: 4rem;
+		background-color:black;
+		color:white;
+	}
+	.highlight {
+		border: 2px solid aquamarine;
+		border-radius: 4px;
+		padding: 2px;
+	}
+
+</style>
+	
+<script src="../Library/Utility.js"></script>
+<script>
+
+	/**
+	 * MORTGAGE COMPARER APPLICATION
+	 * 
+	 * ARCHITECTURE OVERVIEW:
+	 * ─────────────────────────────────────────────────────────────────
+	 * This application compares multiple mortgages using a clean MVP pattern:
+	 * 
+	 * MODEL LAYER (Payment, Mortgage):
+	 *   - Payment: Represents a single mortgage payment month with interest/principal breakdown
+	 *   - Mortgage: Represents a complete loan with payment schedule calculation
+	 *   - Responsibility: Financial calculations only (no UI coupling)
+	 * 
+	 * VIEW LAYER (UIManager):
+	 *   - Manages all DOM creation and updates
+	 *   - Renders mortgage columns, amortization schedule, input fields
+	 *   - Tracks display state (current mortgage being viewed)
+	 *   - Responsibility: HTML rendering and DOM management
+	 * 
+	 * CONTROLLER LAYER (Controller):
+	 *   - Orchestrates user actions (add mortgage, remove, recalculate)
+	 *   - Coordinates between UI events and model calculations
+	 *   - Responsibility: Business logic flow and event coordination
+	 * 
+	 * SUPPORT LAYER (InputManager):
+	 *   - Manages input field state and values
+	 *   - Converts form inputs to Mortgage objects
+	 *   - Responsibility: Input handling and data marshalling
+	 * 
+	 * DATA FLOW:
+	 *   User Action → Controller → Model (calculate) → UIManager (render)
+	 * ─────────────────────────────────────────────────────────────────
+	 */
+
+	// ============ Configuration ============
+	const CONFIG = {
+		propertyTaxRate: 0.81,
+		decimalPlaces: 2,
+		monthlyRateDecimalPlaces: 8,
+		minPrincipalPercent: 0.01,
+		
+		// Input field validation ranges
+		validation: {
+			minAsset: 0,
+			maxAsset: 10000000,
+			minRate: 0.1,
+			maxRate: 25,
+			minTerm: 12,
+			maxTerm: 600
+		},
+		
+		inputFields: [
+			{id: "assets", label: "Asset", default: "563000", type: "text", validation: (v) => v > 0},
+			{id: "downs", label: "Down", default: "180000", type: "text", validation: (v) => v >= 0},
+			{id: "rates", label: "Rate", default: "5.99", type: "text", validation: (v) => v > 0},
+			{id: "terms", label: "Term", default: "360", type: "text", validation: (v) => v >= 12},
+			{id: "extras", label: "Extra", default: "0", type: "text", validation: (v) => v >= 0},
+			{id: "payments", label: "Payment", default: "", type: "none"},
+			{id: "totalInt", label: "totalInt", default: "", type: "none"},
+			{id: "ttlPymts", label: "totlPaid", default: "", type: "none"},
+			{id: "pymntCount", label: "Payments", default: "", type: "none"},
+			{id: "others", label: "Other", default: "", type: "none"},
+			{id: "totals", label: "Total", default: "", type: "none"},
+			{id: "buttons", label: "btns", default: "", type: "btn"}
+		],
+		
+		// CSS class names - centralized for consistency
+		css: {
+			cellInput: "cellInput",
+			column: "column",
+			row: "row",
+			big: "big",
+			small: "small",
+			right: "right",
+			center: "center",
+			gray: "gray",
+			extraPayment: "extra-pymt",
+			button: {
+				base: "divBtn",
+				list: "blue",
+				copy: "green",
+				remove: "red"
+			}
+		},
+		
+		// Amortization schedule column headers
+		amortizationHeaders: [
+			{label: "Mo", width: "small"},
+			{label: "start", width: "big"},
+			{label: "int", width: "big"},
+			{label: "prin", width: "big"},
+			{label: "extra", width: "big"},
+			{label: "balance", width: "big"}
+		],
+		
+		// Button labels (easily customizable)
+		buttonLabels: {
+			list: "L",
+			copy: "C",
+			remove: "R",
+			add: "Add"
+		}
+	};
+
+	// ============ Payment Class ============
+	/**
+	 * Represents a single monthly payment in a mortgage amortization schedule
+	 * Responsible for ONLY: calculating interest and principal breakdown for one payment period
+	 * Does NOT: manage DOM elements, track UI state, or handle rendering
+	 * (Rendering is delegated to UIManager)
+	 */
+	class Payment {
+		constructor() {
+			this.active = true;              // False when loan is fully paid
+			this.month = 0;                  // Payment number (1-based)
+			this.startBalance = 0;           // Remaining balance at start of month
+			this.interest = 0;               // Interest portion of payment
+			this.principle = 0;              // Principal portion of payment
+			this.actualPymnt = 0;            // Total payment (interest + principal)
+			this.endBalance = 0;             // Remaining balance after payment
+			this.totalInterest = 0;          // Cumulative interest paid to date (carries forward)
+			this.totalPayments = 0;          // Cumulative principal paid to date (carries forward)
+			this.extraPayment = 0;           // Additional principal payment this month
+			this.extraInput = undefined;     // Reference to DOM input element for extra payment
+		}
+
+		/**
+		 * Calculates payment breakdown for this month
+		 * Pure calculation - no side effects or DOM access
+		 * 
+		 * @param {Object} values - Running calculation state
+		 * @param {number} values.monthlyRate - Monthly interest rate (annual rate / 12)
+		 * @param {number} values.payment - Monthly payment amount (fixed)
+		 * @param {number} values.balance - Current loan balance at start of month
+		 * @param {number} values.totalInterest - Cumulative interest paid
+		 * @param {number} values.totalPrinciple - Cumulative principal paid
+		 * @param {number} values.month - Current month number
+		 * @param {number} [extraPaymentAmount] - Optional extra payment amount for this month
+		 * @returns {void} Updates this.payment properties and values object
+		 */
+		update(values, extraPaymentAmount) {
+			// Determine how much extra payment applies to this month
+			this.calcExtraPayment(values.extraPayment, extraPaymentAmount);
+			
+			// Copy values from calculation state
+			this.month = values.month++;
+			this.startBalance = values.balance;
+			
+			// Check if loan is paid off
+			if (this.startBalance <= 0) {
+				this.active = false;
+				return;
+			}
+
+			// Calculate interest for this month
+			this.interest = this.roundCurrency(values.monthlyRate * this.startBalance);
+			
+			// Calculate principal for this month (payment - interest + extra)
+			this.principle = this.roundCurrency(values.payment - this.interest + this.extraPayment);
+			
+			// If principal exceeds remaining balance, cap it at the balance
+			if (this.shouldCapPrinciple(values)) {
+				this.principle = this.startBalance;
+			}
+
+			// Update running totals
+			values.totalInterest = this.roundCurrency(this.interest + values.totalInterest);
+			values.totalPrinciple = this.roundCurrency(this.principle + values.totalPrinciple);
+			this.actualPymnt = this.roundCurrency(this.interest + this.principle);
+			this.endBalance = this.roundCurrency(this.startBalance - this.principle);
+			
+			// Copy cumulative totals to this payment for tracking
+			this.totalInterest = values.totalInterest;
+			this.totalPayments = values.totalPrinciple;
+			
+			// Update balance for next month
+			values.balance = this.endBalance;
+		}
+
+		/**
+		 * Determines if principal should be capped at remaining balance
+		 * @param {Object} values - Calculation state
+		 * @returns {boolean} True if principal exceeds remaining balance
+		 */
+		shouldCapPrinciple(values) {
+			return this.principle > this.startBalance || 
+				   (this.startBalance - this.principle) / this.startBalance < CONFIG.minPrincipalPercent;
+		}
+
+		/**
+		 * Rounds value to configured decimal places
+		 * @param {number} value - Value to round
+		 * @returns {number} Rounded value
+		 */
+		roundCurrency(value) {
+			return parseFloat(value.toFixed(CONFIG.decimalPlaces));
+		}
+
+		/**
+		 * Determines extra payment amount for this month (from explicit amount or global default)
+		 * @param {number} globalPaymentValue - Global extra payment default
+		 * @param {number} monthSpecificAmount - Month-specific extra payment amount (optional)
+		 * @returns {void} Updates this.extraPayment
+		 */
+		calcExtraPayment(globalPaymentValue, monthSpecificAmount) {
+			if (monthSpecificAmount !== undefined && monthSpecificAmount !== "") {
+				// Use month-specific extra payment if provided
+				this.extraPayment = parseInt(monthSpecificAmount);
+			} else {
+				// Use global extra payment if no month-specific value
+				this.extraPayment = globalPaymentValue > 0 ? globalPaymentValue : this.extraPayment;
+			}
+		}
+	}
+
+	let nextMortgageId = 0;
+
+	/**
+	 * Represents a complete mortgage/loan
+	 * Responsible for: loan parameters, payment calculations, amortization schedule generation
+	 * Does NOT handle UI rendering (delegated to UIManager)
+	 */
+	class Mortgage {
+		constructor() {
+			this.id = nextMortgageId++;          // Unique identifier
+			this.assetValue = 0;                 // Property value
+			this.downPayment = 0;                // Down payment amount
+			this.rate = 0;                       // Annual interest rate (decimal, e.g., 0.0599)
+			this.term = 0;                       // Loan term in months
+			this.extraPayment = 0;               // Global extra payment amount per month
+			this.payments = [];                  // Array of Payment objects
+
+			// Calculated values
+			this.monthlyRate = 0;                // rate / 12
+			this.loanAmount = 0;                 // assetValue - downPayment
+			this.payment = 0;                    // Fixed monthly payment amount
+			this.propertyTaxRate = 0;            // (informational, not currently used)
+
+			// DOM element references (set by UIManager)
+			this.totalInterestDiv = null;        // Element to display total interest
+			this.paymentsCountDiv = null;        // Element to display total payments
+		}
+
+		/**
+		 * Calculates the fixed monthly payment amount using standard mortgage formula
+		 * P = (L * r * (1+r)^n) / ((1+r)^n - 1)
+		 *   P = payment, L = loan amount, r = monthly rate, n = number of months
+		 * @returns {void} Updates this.payment, this.monthlyRate, this.loanAmount
+		 */
+		calcPayment() {
+			// Convert annual rate to monthly rate
+			this.monthlyRate = parseFloat((this.rate / 12).toFixed(CONFIG.monthlyRateDecimalPlaces));
+			
+			// Calculate loan amount (property value minus down payment)
+			this.loanAmount = this.assetValue - this.downPayment;
+
+			// Apply mortgage payment formula
+			const monthlyFactor = Math.pow(1 + this.monthlyRate, this.term);
+			const numerator = this.loanAmount * this.monthlyRate * monthlyFactor;
+			const denominator = monthlyFactor - 1;
+			this.payment = parseFloat((numerator / denominator).toFixed(CONFIG.decimalPlaces));
+		}
+
+		/**
+		 * Generates complete amortization schedule by calculating all monthly payments
+		* Pure calculation - no UI rendering or side effects
+		* Updates this.payments array with calculated payment objects
+		* 
+		* @param {HTMLElement[]} [paymentExtraInputs] - Extra payment input elements for each payment
+		* @returns {Object} Result object with summary data: {totalInterest, paymentCount, finalBalance}
+		*/
+		calcPayments(paymentExtraInputs = []) {
+			// Initialize running calculation state
+			const values = {
+				extraPayment: this.extraPayment,
+				balance: this.loanAmount,
+				totalInterest: 0,
+				totalPrinciple: 0,
+				monthlyRate: this.monthlyRate,
+				payment: this.payment,
+				month: 1
+			};
+
+			// Update all existing payments (with new extra payment values if provided)
+			this.updateExistingPayments(values, paymentExtraInputs);
+			
+			// Create any new payments needed (for remaining balance)
+			this.fillNewPayments(values);
+			
+			// Return summary data for UIManager to use for display updates
+			return {
+				totalInterest: values.totalInterest,
+				paymentCount: this.payments.length,
+				finalBalance: values.balance
+			};
+		}
+
+		/**
+		 * Recalculates existing payments with potentially new extra payment values
+		 * This is called when user modifies extra payments in the amortization schedule
+		 * Pure calculation - no rendering
+		 * 
+		 * @param {Object} values - Running calculation state (modified in-place)
+		 * @param {HTMLElement[]} paymentExtraInputs - Extra payment elements indexed by payment
+		 * @returns {void} Updates existing Payment objects in this.payments array
+		 */
+		updateExistingPayments(values, paymentExtraInputs = []) {
+			for (let i = 0; i < this.payments.length; i++) {
+				const payment = this.payments[i];
+				const extraInput = paymentExtraInputs[i];
+				
+				// Extract the numeric value from the input (or undefined if not provided)
+				let monthSpecificAmount = undefined;
+				if (extraInput && extraInput.value !== "") {
+					monthSpecificAmount = parseInt(extraInput.value);
+				}
+				
+				// Recalculate this payment with new values
+				payment.update(values, monthSpecificAmount);
+
+				// Remove inactive payments (loan paid off)
+				if (!payment.active) {
+					this.payments.splice(i, 1);
+					i--;
+				}
+			}
+		}
+
+		/**
+		 * Creates new Payment objects for remaining loan balance
+		 * Called after updating existing payments if loan still has a balance
+		 * Pure calculation - no rendering
+		 * 
+		 * @param {Object} values - Running calculation state (loan info and accumulated totals)
+		 * @returns {void} Appends new Payment objects to this.payments array
+		 */
+		fillNewPayments(values) {
+			while (values.balance > 0) {
+				// Create new payment for this month
+				const payment = new Payment();
+				payment.update(values);
+				this.payments.push(payment);
+			}
+		}
+
+		/**
+		 * Gets the final payment in the amortization schedule
+		 * @returns {Payment} Last payment object, or undefined if no payments
+		 */
+		getLastPayment() {
+			return this.payments[this.payments.length - 1];
+		}
+
+		/**
+		 * Gets total number of payments
+		 * @returns {number} Length of payments array
+		 */
+		getPaymentCount() {
+			return this.payments.length;
+		}
+	}
+
+	// ============ Input Manager ============
+	/**
+	 * Manages mortgage input form fields
+	 * Responsible for: reading/writing form values, converting inputs to Mortgage objects, validation
+	 * Decouples input handling from UI rendering concerns
+	 */
+	class InputManager {
+		/**
+		 * Creates an InputManager and initializes field tracking
+		 */
+		constructor() {
+			this.fields = {};  // Stores field metadata and references
+			this.buildInputFields();
+		}
+
+		/**
+		 * Initializes field dictionary from CONFIG.inputFields
+		 * @returns {void} Populates this.fields
+		 */
+		buildInputFields() {
+			CONFIG.inputFields.forEach(field => {
+				this.fields[field.id] = {
+					...field,  // Copy id, label, default, type, validation
+					input: null  // Will be set by UIManager when DOM elements created
+				};
+			});
+		}
+
+		/**
+		 * Gets field metadata by ID
+		 * @param {string} fieldId - Field identifier
+		 * @returns {Object|undefined} Field object or undefined
+		 */
+		getField(fieldId) {
+			return this.fields[fieldId];
+		}
+
+		/**
+		 * Gets current value from form input field
+		 * @param {string} fieldId - Field identifier
+		 * @returns {string|null} Current input value or null if field/input not found
+		 */
+		getInputValue(fieldId) {
+			const field = this.getField(fieldId);
+			return field && field.input ? field.input.value : null;
+		}
+
+		/**
+		 * Sets value of form input field
+		 * @param {string} fieldId - Field identifier
+		 * @param {string|number} value - Value to set
+		 * @returns {void}
+		 */
+		setInputValue(fieldId, value) {
+			const field = this.getField(fieldId);
+			if (field && field.input) {
+				field.input.value = value;
+			}
+		}
+
+		/**
+		 * Validates all required input fields
+		 * @returns {Object} {isValid: boolean, errors: string[]}
+		 */
+		validateInputs() {
+			const errors = [];
+			const validationFields = [{field: "assets", min: 0}, {field: "rates", min: 0.1}, {field: "terms", min: 12}];
+			
+			validationFields.forEach(({field, min}) => {
+				const value = parseFloat(this.getInputValue(field));
+				if (isNaN(value) || value < min) {
+					errors.push(`${field}: must be a valid number >= ${min}`);
+				}
+			});
+			
+			const downPayment = parseFloat(this.getInputValue("downs"));
+			const assetValue = parseFloat(this.getInputValue("assets"));
+			if (downPayment > assetValue) {
+				errors.push("Down payment cannot exceed asset value");
+			}
+			
+			return {isValid: errors.length === 0, errors: errors};
+		}
+
+		/**
+		 * Creates a Mortgage object from current form input values
+		 * Responsible for type conversion and data marshalling
+		 * 
+		 * @returns {Mortgage|null} New mortgage with values from form inputs, or null if invalid
+		 */
+		getMortgageFromInputs() {
+			const validation = this.validateInputs();
+			if (!validation.isValid) {
+				console.error("Validation errors:", validation.errors);
+				return null;
+			}
+			
+			const mortgage = new Mortgage();
+			mortgage.assetValue = parseFloat(this.getInputValue("assets"));
+			mortgage.downPayment = parseFloat(this.getInputValue("downs"));
+			mortgage.rate = parseFloat(this.getInputValue("rates") / 100);  // Convert to decimal
+			mortgage.term = parseFloat(this.getInputValue("terms"));
+			mortgage.extraPayment = parseFloat(this.getInputValue("extras"));
+			return mortgage;
+		}
+
+		/**
+		 * Gets all field objects
+		 * @returns {Object[]} Array of field objects
+		 */
+		getAllInputs() {
+			return Object.values(this.fields);
+		}
+	}
+
+	// ============ DOM Helper Utilities ============
+	/**
+	 * Helper functions for creating DOM elements with consistent patterns
+	 */
+	const DOMHelper = {
+		/**
+		 * Creates a div with predefined classes
+		 * @param {HTMLElement} parent - Parent element (optional)
+		 * @param {string[]} classes - Array of CSS class names
+		 * @param {string} text - Text content (optional)
+		 * @param {Function} onClick - Click handler (optional)
+		 * @returns {HTMLElement} Created div element
+		 */
+		createDiv(parent, classes = [], text = "", onClick = null) {
+			const div = createHtmlElement("div", parent, classes, text, onClick);
+			return div;
+		},
+
+		/**
+		 * Creates an input field with consistent styling
+		 * @param {HTMLElement} parent - Parent element
+		 * @param {string} value - Initial value
+		 * @param {string[]} classes - Additional CSS classes
+		 * @returns {HTMLElement} Created input element
+		 */
+		createInput(parent, value = "", classes = [CONFIG.css.cellInput]) {
+			const input = createHtmlElement("input", parent, classes, "", null);
+			input.setAttribute("type", "text");
+			input.setAttribute("value", value);
+			return input;
+		},
+
+		/**
+		 * Creates a styled button with action callback
+		 * @param {HTMLElement} parent - Parent element
+		 * @param {string} label - Button text
+		 * @param {string[]} classes - CSS classes
+		 * @param {Function} onClick - Click handler
+		 * @returns {HTMLElement} Created button element
+		 */
+		createButton(parent, label, classes = [CONFIG.css.button.base], onClick) {
+			const btn = createHtmlElement("div", parent, classes, label, onClick);
+			btn.style.cursor = "pointer";
+			return btn;
+		},
+
+		/**
+		 * Gets class array from config definition
+		 * @param {string|string[]} classSpec - Single class name or array
+		 * @returns {string[]} Array of class names
+		 */
+		getClasses(...classSpecs) {
+			return classSpecs.flat().filter(c => c);
+		}
+	};
+
+	// ============ UI Manager ============
+	/**
+	 * Manages all DOM creation, updates, and rendering
+	 * Responsible for: HTML generation, displaying mortgages, amortization schedules, input fields
+	 * Maintains display state (active mortgage being viewed)
+	 * Does NOT perform financial calculations (delegated to model classes)
+	 */
+	class UIManager {
+		/**
+		 * Creates UIManager and initializes display tracking
+		 * @param {HTMLElement} amortizationDiv - Container for amortization schedule display
+		 */
+		constructor(amortizationDiv) {
+			this.amortizationDiv = amortizationDiv;
+			this.columnMap = {};                 // Maps mortgageId → {div, mortgage}
+			this.paymentRowDivs = {};            // Tracks payment row elements
+			this.onPaymentChangedCallback = null;  // Callback when user modifies extra payment
+			this.currentMortgageId = null;       // ID of mortgage currently displayed
+		}
+
+		// ─────────────────────────────────────────────────────────────────
+		// INPUT COLUMN (Left column with form inputs)
+		// ─────────────────────────────────────────────────────────────────
+
+		/**
+		 * Creates the input form column with text fields and Add button
+		 * @param {HTMLElement} chartDiv - Container for all columns
+		 * @param {InputManager} inputManager - Manages field state
+		 * @param {Function} onAddMortgage - Callback when Add button clicked
+		 * @returns {void}
+		 */
+		createInputColumn(chartDiv, inputManager, onAddMortgage) {
+			const columnDiv = DOMHelper.createDiv(chartDiv, [CONFIG.css.column], "", null);
+			
+			inputManager.getAllInputs().forEach(field => {
+				if (field.type === "text") {
+					// Create input field
+					field.input = DOMHelper.createInput(columnDiv, field.default, [CONFIG.css.cellInput]);
+				}
+				if (field.type === "btn") {
+					// Create Add button
+					DOMHelper.createButton(columnDiv, CONFIG.buttonLabels.add, 
+						[CONFIG.css.button.base], onAddMortgage);
+				}
+			});
+		}
+
+		// ─────────────────────────────────────────────────────────────────
+		// LABEL COLUMN (Column showing field names)
+		// ─────────────────────────────────────────────────────────────────
+
+		/**
+		 * Creates the label column showing field names
+		 * @param {HTMLElement} chartDiv - Container for all columns
+		 * @returns {void}
+		 */
+		createLabelColumn(chartDiv) {
+			const columnDiv = DOMHelper.createDiv(null, [CONFIG.css.column, CONFIG.css.big], "", null);
+			
+			CONFIG.inputFields.forEach(field => {
+				DOMHelper.createDiv(columnDiv, ["cell", CONFIG.css.big], field.label, null);
+			});
+			
+			this.addColumnToChart(columnDiv, chartDiv);
+		}
+
+		// ─────────────────────────────────────────────────────────────────
+		// MORTGAGE COLUMN (Data column for each mortgage)
+		// ─────────────────────────────────────────────────────────────────
+
+		/**
+		 * Creates a column displaying mortgage summary and control buttons
+		 * @param {HTMLElement} chartDiv - Container for all columns
+		 * @param {Mortgage} mortgage - Mortgage to display
+		 * @param {Controller} controller - Event handler for button clicks
+		 * @returns {void}
+		 */
+		createMortgageColumn(chartDiv, mortgage, controller) {
+			const columnDiv = DOMHelper.createDiv(null, [CONFIG.css.column, CONFIG.css.big], "", null);
+			
+			// Add data values (asset, down payment, rate, term, etc.)
+			this.addMortgageDataRows(columnDiv, mortgage);
+			
+			// Store references to summary display elements
+			mortgage.totalInterestDiv = this.getDataElement(columnDiv, 6);
+			mortgage.paymentsCountDiv = this.getDataElement(columnDiv, 8);
+			
+			// Add button row (L, C, R buttons)
+			const btnsDiv = DOMHelper.createDiv(columnDiv, [CONFIG.css.row, CONFIG.css.right], "", null);
+			this.createMortgageButtons(btnsDiv, mortgage, controller);
+			
+			// Add column to chart and track it
+			this.addColumnToChart(columnDiv, chartDiv);
+			this.columnMap[mortgage.id] = { div: columnDiv, mortgage: mortgage };
+		}
+
+		/**
+		 * Adds data value rows to a mortgage column
+		 * Each row displays one mortgage value (asset value, rate, etc.)
+		 * @param {HTMLElement} columnDiv - Container for this mortgage's data
+		 * @param {Mortgage} mortgage - Mortgage object with values to display
+		 * @returns {void}
+		 */
+		addMortgageDataRows(columnDiv, mortgage) {
+			// Array of values to display in order (must match field order in CONFIG.inputFields)
+			const values = [
+				mortgage.assetValue,
+				mortgage.downPayment,
+				mortgage.rate * 100,  // Convert from decimal to percentage
+				mortgage.term,
+				mortgage.extraPayment,
+				mortgage.payment,
+				mortgage.totalInterest || 0,      // Will be updated after calculation
+				mortgage.loanAmount,
+				mortgage.payments.length,         // Will be updated after calculation
+				0,  // Placeholder for "Other" field
+				0   // Placeholder for "Total" field
+			];
+
+			values.forEach(value => {
+				DOMHelper.createDiv(columnDiv, [CONFIG.css.row, CONFIG.css.big, CONFIG.css.right], value, null);
+			});
+		}
+
+		/**
+		 * Gets child element from parent by index
+		 * @param {HTMLElement} parent - Parent element
+		 * @param {number} index - Child index (0-based)
+		 * @returns {HTMLElement} Child element
+		 */
+		getDataElement(parent, index) {
+			return parent.children[index];
+		}
+
+		/**
+		 * Creates the button row for mortgage controls (L/C/R buttons)
+		 * L = List/show amortization schedule
+		 * C = Copy parameters to input fields
+		 * R = Remove this mortgage
+		 * 
+		 * @param {HTMLElement} btnsDiv - Container for buttons
+		 * @param {Mortgage} mortgage - Mortgage being controlled
+		 * @param {Controller} controller - Event handler
+		 * @returns {void}
+		 */
+		createMortgageButtons(btnsDiv, mortgage, controller) {
+			DOMHelper.createButton(btnsDiv, CONFIG.buttonLabels.list, 
+				[CONFIG.css.button.base, CONFIG.css.button.list],
+				() => controller.showAmortizationList(mortgage));
+			DOMHelper.createButton(btnsDiv, CONFIG.buttonLabels.copy, 
+				[CONFIG.css.button.base, CONFIG.css.button.copy],
+				() => controller.copyMortgageParameters(mortgage.id));
+			DOMHelper.createButton(btnsDiv, CONFIG.buttonLabels.remove, 
+				[CONFIG.css.button.base, CONFIG.css.button.remove],
+				() => controller.removeMortgageColumn(mortgage.id));
+		}
+
+		/**
+		 * Inserts a column into the chart (after the input column)
+		 * @param {HTMLElement} column - Column element to insert
+		 * @param {HTMLElement} chartDiv - Chart container
+		 * @returns {void}
+		 */
+		addColumnToChart(column, chartDiv) {
+			const firstColumn = chartDiv.querySelector('[class*="column"]');
+			if(firstColumn == undefined) {
+				chartDiv.appendChild(column);
+				return;
+			}
+			chartDiv.insertBefore(column, chartDiv.lastChild);
+		}
+
+		// ─────────────────────────────────────────────────────────────────
+		// AMORTIZATION SCHEDULE DISPLAY
+		// ─────────────────────────────────────────────────────────────────
+
+		/**
+		 * Creates amortization schedule header row and tracks current mortgage
+		 * Called before rendering payment details so UIManager knows which mortgage is displayed
+		 * 
+		 * @param {number} mortgageId - ID of mortgage whose schedule will be displayed
+		 * @returns {void}
+		 */
+		createAmortizationHeader(mortgageId) {
+			this.currentMortgageId = mortgageId;
+			this.clearAmortizationDiv();
+			const rowDiv = DOMHelper.createDiv(this.amortizationDiv, [CONFIG.css.gray], "", null);
+			
+			// Create column header for each amortization column
+			CONFIG.amortizationHeaders.forEach((headerSpec) => {
+				const classes = [CONFIG.css.column, headerSpec.width, CONFIG.css.center];
+				DOMHelper.createDiv(rowDiv, classes, headerSpec.label, null);
+			});
+		}
+
+		/**
+		 * Gets the ID of the mortgage currently being displayed
+		 * Used to determine if extra payment updates apply to the displayed mortgage
+		 * 
+		 * @returns {number|null} Mortgage ID or null if nothing displayed
+		 */
+		getCurrentMortgageId() {
+			return this.currentMortgageId;
+		}
+
+		/**
+		 * Adds a single payment row to the amortization schedule
+		 * Called once per payment in the schedule
+		 * 
+		 * @param {Mortgage} mortgage - Parent mortgage (used for callbacks)
+		 * @param {Payment} payment - Payment object with calculated values
+		 * @returns {void}
+		 */
+		addPaymentRow(mortgage, payment) {
+			// Alternate row colors for readability
+			const rowClasses = payment.month % 2 === 0 ? [CONFIG.css.gray] : [];
+			const rowDiv = DOMHelper.createDiv(this.amortizationDiv, rowClasses, "", null);
+			
+			// Month number (left-aligned in narrower column)
+			DOMHelper.createDiv(rowDiv, [CONFIG.css.column, CONFIG.css.small, CONFIG.css.right], 
+				payment.month, null);
+			
+			// Beginning balance
+			DOMHelper.createDiv(rowDiv, [CONFIG.css.column, CONFIG.css.big, CONFIG.css.right], 
+				payment.startBalance.toFixed(CONFIG.decimalPlaces), null);
+			
+			// Interest portion
+			DOMHelper.createDiv(rowDiv, [CONFIG.css.column, CONFIG.css.big, CONFIG.css.right], 
+				payment.interest.toFixed(CONFIG.decimalPlaces), null);
+			
+			// Principal portion
+			DOMHelper.createDiv(rowDiv, [CONFIG.css.column, CONFIG.css.big, CONFIG.css.right], 
+				payment.principle.toFixed(CONFIG.decimalPlaces), null);
+			
+			// Extra payment (editable input field)
+			const extraDiv = DOMHelper.createDiv(rowDiv, [CONFIG.css.column, CONFIG.css.big, CONFIG.css.right], 
+				"", null);
+			const extraInput = DOMHelper.createInput(extraDiv, payment.extraPayment, 
+				[CONFIG.css.extraPayment]);
+			extraInput.setAttribute("name", "extraPymt");
+			extraInput.onblur = () => {
+				if (this.onPaymentChangedCallback) {
+					this.onPaymentChangedCallback(mortgage);
+				}
+			};
+			payment.extraInput = extraInput;
+			
+			// Ending balance
+			DOMHelper.createDiv(rowDiv, [CONFIG.css.column, CONFIG.css.big, CONFIG.css.right], 
+				payment.endBalance.toFixed(CONFIG.decimalPlaces), null);
+			
+			payment.rowDiv = rowDiv;
+		}
+
+		/**
+		 * Sets callback to be invoked when user modifies an extra payment
+		 * @param {Function} callback - Called with (mortgage) when extra payment input loses focus
+		 * @returns {void}
+		 */
+		setOnPaymentChangedCallback(callback) {
+			this.onPaymentChangedCallback = callback;
+		}
+
+		/**
+		 * Renders all payments from a mortgage into the amortization schedule
+		 * Called after calcPayments() completes to display all calculated payment rows
+		 * Delegates to addPaymentRow for rendering each individual payment
+		 * 
+		 * @param {Mortgage} mortgage - Mortgage with payments to render
+		 * @returns {void}
+		 */
+		renderPayments(mortgage) {
+			// Render each payment as a row in the amortization schedule
+			mortgage.payments.forEach(payment => {
+				this.addPaymentRow(mortgage, payment);
+			});
+		}
+
+		// ─────────────────────────────────────────────────────────────────
+		// UPDATE & REMOVE OPERATIONS
+		// ─────────────────────────────────────────────────────────────────
+
+		/**
+		 * Updates mortgage summary displays (total interest, payment count)
+		 * Called after payment calculations complete
+		 * 
+		 * @param {Mortgage} mortgage - Mortgage with updated values
+		 * @param {Object} values - Calculation state with totals
+		 * @returns {void}
+		 */
+		updateMortgageSummary(mortgage, values) {
+			if (mortgage.totalInterestDiv) {
+				mortgage.totalInterestDiv.innerText = values.totalInterest;
+			}
+			if (mortgage.paymentsCountDiv) {
+				mortgage.paymentsCountDiv.innerText = mortgage.payments.length;
+			}
+		}
+
+		/**
+		 * Removes a mortgage column from the display
+		 * @param {number} mortgageId - ID of mortgage to remove
+		 * @returns {void}
+		 */
+		removeMortgageColumn(mortgageId) {
+			const columnData = this.columnMap[mortgageId];
+			if (columnData) {
+				columnData.div.parentElement.removeChild(columnData.div);
+				delete this.columnMap[mortgageId];
+			}
+
+			if(this.currentMortgageId === mortgageId) {
+				this.currentMortgageId = null;
+				this.clearAmortizationDiv();
+			}
+		}
+
+		/**
+		 * Clears all content from amortization display
+		 * Removes all child elements (header and payment rows)
+		 * 
+		 * @returns {void}
+		 */
+		clearAmortizationDiv() {
+			while (this.amortizationDiv.children.length > 0) {
+				this.amortizationDiv.removeChild(this.amortizationDiv.children[0]);
+			}
+		}
+
+		/**
+		 * Highlights the mortgage column currently being displayed
+		 * Removes highlight from all other mortgage columns
+		 * 
+		 * @param {number} mortgageId - ID of mortgage to highlight
+		 * @returns {void}
+		 */
+		highlightMortgageColumn(mortgageId) {
+			// Remove highlight from all columns
+			Object.values(this.columnMap).forEach(columnData => {
+				columnData.div.classList.remove("highlight");
+			});
+			
+			// Add highlight to the specified column
+			const columnData = this.columnMap[mortgageId];
+			if (columnData) {
+				columnData.div.classList.add("highlight");
+			}
+		}
+	}
+
+	// ============ Controller ============
+	/**
+	 * Orchestrates application logic and user interactions
+	 * Acts as the bridge between View (UIManager) and Model (Mortgage, Payment)
+	 * Responsibility: business logic flow, event coordination, state management
+	 */
+	class Controller {
+		/**
+		 * Creates controller and wires up event callbacks
+		 * @param {UIManager} uiManager - UI rendering and state
+		 * @param {InputManager} inputManager - Form input state
+		 */
+		constructor(uiManager, inputManager) {
+			this.mortgages = [];          // Array of all mortgages (model state)
+			this.uiManager = uiManager;
+			this.inputManager = inputManager;
+			
+			// Wire up callback: when user modifies extra payment → recalculate
+			this.uiManager.setOnPaymentChangedCallback((mortgage) => this.updateMortgagePayments(mortgage));
+		}
+
+		/**
+		 * Creates a new mortgage from form inputs and adds it to the comparison
+		* Orchestrates: input reading → Mortgage creation → calculation → UI rendering
+		* Does NOT display amortization schedule (user clicks "L" to view it)
+		* 
+		* Called when user clicks "Add" button
+		* @returns {void}
+		*/
+		addNewMortgage() {
+			// Step 1: Extract and parse form input values (with validation)
+			const mortgage = this.inputManager.getMortgageFromInputs();
+			
+			// If validation failed, mortgage will be null
+			if (!mortgage) {
+				console.warn("Invalid mortgage inputs");
+				return;
+			}
+			
+			// Step 2: Calculate fixed monthly payment
+			mortgage.calcPayment();
+			
+			// Step 3: Add to model state
+			this.mortgages.push(mortgage);
+			
+			// Step 4: Render in UI
+			const chartDiv = document.getElementById("chart");
+			this.uiManager.createMortgageColumn(chartDiv, mortgage, this);
+
+			this.showAmortizationList(mortgage);  // Optionally show amortization immediately after adding
+		}
+			
+		// Note: Mortgage payments are only calculated and displayed when user clicks "L"
+		/**
+		 * Recalculates amortization schedule when user modifies an extra payment
+		 * Only recalculates if the user did it on the currently-displayed mortgage
+		 * (Extra payments on other mortgages are preserved but not live-calculated)
+		 * 
+		 * Called when user blurs an extra payment input field
+		 * @param {Mortgage} mortgage - Mortgage whose extra payment was modified
+		 * @returns {void}
+		 */
+		updateMortgagePayments(mortgage) {
+			// Only recalculate if this is the currently displayed mortgage
+			// (prevents recalculating hidden mortgages when user edits visible one)
+			if (this.uiManager.getCurrentMortgageId() === mortgage.id) {
+				// Collect extra payment values from all payment input fields
+				const extraInputs = mortgage.payments.map(p => p.extraInput);
+				
+				// Recalculate all payments with the new extra payment values
+				const summary = mortgage.calcPayments(extraInputs);
+				
+				// Re-render the amortization schedule with updated payments
+				this.uiManager.createAmortizationHeader(mortgage.id);
+				this.uiManager.renderPayments(mortgage);
+				
+				// Update the summary display
+				this.uiManager.updateMortgageSummary(mortgage, summary);
+			}
+		}
+
+		/**
+		 * Copies a mortgage's parameters into the input form for quick editing/comparison
+		 * Called when user clicks "C" (copy) button
+		 * 
+		 * @param {number} mortgageId - ID of mortgage to copy
+		 * @returns {void}
+		 */
+		copyMortgageParameters(mortgageId) {
+			const mortgage = this.mortgages.find(m => m.id === mortgageId);
+			if (mortgage) {
+				// Populate input fields with this mortgage's values
+				this.inputManager.setInputValue("assets", mortgage.assetValue);
+				this.inputManager.setInputValue("downs", mortgage.downPayment);
+				this.inputManager.setInputValue("rates", mortgage.rate * 100);  // Convert to percentage
+				this.inputManager.setInputValue("terms", mortgage.term);
+				this.inputManager.setInputValue("extras", mortgage.extraPayment);
+			}
+		}
+
+		/**
+		 * Displays the amortization schedule for a mortgage
+		 * Orchestrates: header rendering → full payment schedule generation → rendering
+		 * 
+		 * Called when user clicks "L" (list) button
+		 * @param {Mortgage} mortgage - Mortgage whose schedule should be displayed
+		 * @returns {void}
+		 */
+		showAmortizationList(mortgage) {
+			// Create header row and mark this mortgage as currently displayed
+			this.uiManager.createAmortizationHeader(mortgage.id);
+			
+			// Highlight the mortgage column being displayed
+			this.uiManager.highlightMortgageColumn(mortgage.id);
+			
+			// Calculate amortization schedule (pure calculation, no rendering)
+			const summary = mortgage.calcPayments();
+			
+			// Render all calculated payments
+			this.uiManager.renderPayments(mortgage);
+			
+			// Update summary display with final values
+			this.uiManager.updateMortgageSummary(mortgage, summary);
+		}
+
+		/**
+		 * Removes a mortgage from the model and UI
+		 * Called when user clicks "R" (remove) button
+		 * 
+		 * @param {number} mortgageId - ID of mortgage to remove
+		 * @returns {void}
+		 */
+		removeMortgageColumn(mortgageId) {
+			// Remove from model
+			this.mortgages = this.mortgages.filter(m => m.id !== mortgageId);
+			
+			// Remove from UI
+			this.uiManager.removeMortgageColumn(mortgageId);
+		}
+	}
+
+	// ============ Global Variables ============
+	let controller;      // Main application controller
+	let uiManager;       // Manages all UI rendering
+	let inputManager;    // Manages input form fields
+
+	// ============ Initialization ============
+	/**
+	 * Application entry point - called when DOM is ready
+	 * Sets up managers and renders initial UI
+	 * @returns {void}
+	 */
+	function init() {
+		// Get DOM containers
+		const amortizationDiv = document.getElementById("amortization");
+		const chartDiv = document.getElementById("chart");
+		
+		// Instantiate managers (order matters - no dependencies)
+		uiManager = new UIManager(amortizationDiv);
+		inputManager = new InputManager();
+		controller = new Controller(uiManager, inputManager);
+		
+		// Render initial UI
+		setupUI(chartDiv);
+	}
+
+	/**
+	 * Renders the initial input form and labels
+	 * This sets up the input column and label column before any mortgages are added
+	 * @param {HTMLElement} chartDiv - Chart container
+	 * @returns {void}
+	 */
+	function setupUI(chartDiv) {
+		// Create label column showing field names
+		uiManager.createLabelColumn(chartDiv);
+		
+		// Create input column with form fields and Add button
+		uiManager.createInputColumn(chartDiv, inputManager, () => controller.addNewMortgage());
+	}
+	
+	// Wait for DOM to be ready, then initialize app
+	window.addEventListener('DOMContentLoaded', (event) => { init(); });
+</script>
+	
+<body>
+	<div style="font-size: 2rem;">Loan Comparer</div>
+	<div id="description" class="description">
+		Mortgage Comparer lets you compare multiple mortgages. Enter loan details (Asset value, Down payment, Interest rate, Loan term, and optional extra payment), then click Add to create a mortgage column. Click the blue 'L' button to view the amortization schedule. You can modify the extra payment amount for each monthly payment in the schedule, and the loan will automatically recalculate when you click away from the extra payment field.		
+	</div>
+	<div id="chart">
+	</div>
+	<div id="amortization" class="ammortization"></div>
+</body>
+</html>
